@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { STEPS, formatBytes, pullTotals, stepStatus } from "@/lib/creation-progress";
+import { formatBytes, pullTotals, stepStatus, stepsFor } from "@/lib/creation-progress";
 
 function Marker({ status, failed }) {
   if (failed) return <span className="text-red-400">✕</span>;
@@ -10,7 +10,13 @@ function Marker({ status, failed }) {
   return <span className="text-slate-600">○</span>;
 }
 
-export default function CreationProgress({ progress, editing }) {
+const TITLES = {
+  create: "Creating runner",
+  edit: "Recreating runner",
+  update: "Updating runner",
+};
+
+export default function CreationProgress({ progress, mode = "create" }) {
   const logRef = useRef(null);
   const { phase, message, logs, layers, error } = progress;
   const { current, total, percent } = pullTotals(layers);
@@ -20,14 +26,13 @@ export default function CreationProgress({ progress, editing }) {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [logs]);
 
-  // "Removing the current container" só existe no fluxo de recriação.
-  const steps = STEPS.filter((step) => step.id !== "removing" || editing);
+  const steps = stepsFor(mode);
 
   return (
     <section className="space-y-3 rounded-xl border border-slate-800 bg-slate-900 p-4">
       <header className="flex items-baseline justify-between gap-3">
         <h3 className="text-sm font-medium text-slate-100">
-          {editing ? "Recreating runner" : "Creating runner"}
+          {TITLES[mode] || TITLES.create}
         </h3>
         {message && <p className="truncate text-xs text-slate-400">{message}</p>}
       </header>
@@ -91,7 +96,9 @@ export default function CreationProgress({ progress, editing }) {
       )}
 
       <p className="text-xs text-slate-500">
-        The first run builds the runner image, which can take a few minutes. This is normal.
+        {mode === "update"
+          ? "The runner keeps its registration: no token is needed, but a job in progress is interrupted."
+          : "The first run builds the runner image, which can take a few minutes. This is normal."}
       </p>
     </section>
   );

@@ -52,7 +52,8 @@ que o painel monta no container, então `services:` e `docker build` funcionam.
 
 A tag de cada imagem é um hash do seu contexto (`Dockerfile` + `entrypoint.sh`). Quando
 o contexto muda, a tag muda e o painel reconstrói a imagem no próximo runner criado ou
-editado — runners existentes precisam ser editados para passar a usá-la.
+editado. Runners existentes mostram o selo **Update available** e passam a usá-la pelo
+botão **Update** (veja abaixo).
 
 Se quiser construí-las antes (o primeiro `docker build` do GitHub leva alguns minutos),
 use a sua própria tag e aponte o painel para ela:
@@ -103,11 +104,29 @@ GCM e não CBC porque autentica o conteúdo: um arquivo adulterado falha na deci
 vez de devolver lixo. A chave vem de `RUNNERBOX_SECRET_KEY`; se você não definir uma, o
 painel gera e persiste em `$RUNNERBOX_DATA_DIR/key` com permissão 0600.
 
-## Atualizar e excluir
+## Editar, atualizar e excluir
 
-A atualização usa a estratégia **recreate**: as credenciais de registro são variáveis de
-ambiente do container, então o painel remove o container antigo (`docker rm -f`) e sobe um
-novo com os valores atualizados. A exclusão faz `stop` seguido de `remove`.
+**Editar** usa a estratégia **recreate**: o registro consome o token, então o painel remove
+o container antigo (`docker rm -f`) e sobe um novo, que registra de novo com os valores
+atualizados.
+
+**Update** troca o container pela imagem mais recente **sem perder o registro** e sem pedir
+token:
+
+1. Reconstrói a imagem com pull da base (ou faz `docker pull` quando
+   `RUNNERBOX_*_IMAGE` está definida). Se o container já usa essa imagem, não faz nada.
+2. Copia o registro do container atual — `.runner`, `.credentials` e
+   `.credentials_rsaparams` no GitHub; o diretório `/etc/gitlab-runner` no GitLab.
+3. Encerra o container com `SIGKILL` (o `SIGTERM` faria o entrypoint desregistrar o runner)
+   e o renomeia para `<nome>-old-…`.
+4. Cria o container novo com o mesmo nome, devolve o registro a ele antes do start e
+   confere que fica de pé por 10 segundos sem reiniciar.
+5. Se tudo deu certo, remove o antigo; se algo falhou, remove o novo e restaura o antigo.
+
+Um job em andamento é interrompido. No GitHub, o runner novo pode levar alguns instantes
+para ficar online enquanto a sessão do antigo expira.
+
+A exclusão faz `stop` seguido de `remove`.
 
 ## Publicação no Docker Hub (GitHub Actions)
 
