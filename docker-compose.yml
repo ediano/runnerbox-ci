@@ -1,0 +1,15 @@
+services:
+  runnerbox-ci:
+    image: SEU_USUARIO/runnerbox-ci:latest
+    container_name: runnerbox-ci
+    ports:
+      - "2141:2141"
+    volumes:
+      # É por aqui que o painel cria, lista e remove os containers dos runners.
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      # Opcional: aponte para as imagens base próprias de docker/{github,gitlab}-runner.
+      # RUNNERBOX_GITHUB_IMAGE: runnerbox/github-runner:latest
+      # RUNNERBOX_GITLAB_IMAGE: runnerbox/gitlab-runner:latest
+      NODE_ENV: production
+    restart: unless-stopped

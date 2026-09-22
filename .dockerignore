@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+build
+.git
+.github
+.devcontainer
+docs
+npm-debug.log*
+.env
+.env.local
+.DS_Store
