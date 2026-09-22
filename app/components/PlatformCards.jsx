@@ -4,12 +4,12 @@ const CARDS = [
   {
     id: "github",
     title: "GitHub Actions",
-    description: "Self-hosted runner para um repositório ou uma organização.",
+    description: "Self-hosted runner for a repository or an organization.",
   },
   {
     id: "gitlab",
     title: "GitLab CI",
-    description: "Executor para escopo de instância, grupo ou projeto.",
+    description: "Executor scoped to an instance, group, or project.",
   },
 ];
 

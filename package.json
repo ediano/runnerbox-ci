@@ -2,6 +2,19 @@
   "name": "runnerbox-ci",
   "version": "0.1.0",
   "private": true,
+  "description": "Local panel to manage GitHub Actions and GitLab CI self-hosted runners as Docker containers.",
+  "author": {
+    "name": "Ediano Silva Santos",
+    "url": "https://github.com/ediano"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ediano/runnerbox-ci.git"
+  },
+  "homepage": "https://github.com/ediano/runnerbox-ci#readme",
+  "bugs": {
+    "url": "https://github.com/ediano/runnerbox-ci/issues"
+  },
   "scripts": {
     "dev": "next dev -p 2131",
     "build": "next build",

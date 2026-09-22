@@ -8,7 +8,7 @@ export default function Header() {
         <div>
           <h1 className="text-lg font-semibold leading-tight">Runner Box CI</h1>
           <p className="text-sm text-slate-400">
-            Gestão local de runners do GitHub Actions e GitLab CI
+            Local management for GitHub Actions and GitLab CI runners
           </p>
         </div>
       </div>

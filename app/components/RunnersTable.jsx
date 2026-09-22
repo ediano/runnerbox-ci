@@ -12,7 +12,7 @@ export default function RunnersTable({ runners, onEdit, onDelete, busyId }) {
   if (runners.length === 0) {
     return (
       <p className="rounded-xl border border-dashed border-slate-800 bg-slate-900 p-6 text-center text-sm text-slate-400">
-        Nenhum runner gerenciado no momento.
+        No managed runners yet.
       </p>
     );
   }
@@ -23,9 +23,9 @@ export default function RunnersTable({ runners, onEdit, onDelete, busyId }) {
         <thead className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-400">
           <tr>
             <th className="px-4 py-3 font-medium">Runner</th>
-            <th className="px-4 py-3 font-medium">Plataforma</th>
+            <th className="px-4 py-3 font-medium">Platform</th>
             <th className="px-4 py-3 font-medium">Status</th>
-            <th className="px-4 py-3 font-medium text-right">Ações</th>
+            <th className="px-4 py-3 font-medium text-right">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -52,7 +52,7 @@ export default function RunnersTable({ runners, onEdit, onDelete, busyId }) {
                     disabled={busyId === runner.id}
                     className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-medium transition hover:bg-slate-800 disabled:opacity-60"
                   >
-                    Editar
+                    Edit
                   </button>
                   <button
                     type="button"
@@ -60,7 +60,7 @@ export default function RunnersTable({ runners, onEdit, onDelete, busyId }) {
                     disabled={busyId === runner.id}
                     className="rounded-lg border border-red-900 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-950 disabled:opacity-60"
                   >
-                    {busyId === runner.id ? "Removendo…" : "Excluir"}
+                    {busyId === runner.id ? "Removing…" : "Delete"}
                   </button>
                 </div>
               </td>

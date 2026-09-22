@@ -18,7 +18,7 @@ export default function Dashboard() {
     try {
       const response = await fetch("/api/runners", { cache: "no-store" });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Falha ao listar os runners.");
+      if (!response.ok) throw new Error(data.error || "Failed to list runners.");
       setRunners(data.runners);
       setLoadError(null);
     } catch (err) {
@@ -57,12 +57,12 @@ export default function Dashboard() {
   }
 
   async function handleDelete(runner) {
-    if (!window.confirm(`Excluir o runner "${runner.name}"? O container será removido.`)) return;
+    if (!window.confirm(`Delete runner "${runner.name}"? Its container will be removed.`)) return;
     setBusyId(runner.id);
     try {
       const response = await fetch(`/api/runners/${runner.id}`, { method: "DELETE" });
       const data = await response.json();
-      if (!response.ok) setLoadError(data.error || "Falha ao excluir o runner.");
+      if (!response.ok) setLoadError(data.error || "Failed to delete the runner.");
       if (editing?.id === runner.id) setEditing(null);
       await refresh();
     } catch (err) {
@@ -83,8 +83,8 @@ export default function Dashboard() {
 
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-base font-semibold">Runners gerenciados</h2>
-          <span className="text-xs text-slate-400">Atualizado a cada 5s</span>
+          <h2 className="text-base font-semibold">Managed runners</h2>
+          <span className="text-xs text-slate-400">Refreshed every 5s</span>
         </div>
 
         {loadError && (

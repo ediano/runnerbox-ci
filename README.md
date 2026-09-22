@@ -1,5 +1,7 @@
 # RunnerBox CI
 
+[Repositório](https://github.com/ediano/runnerbox-ci) · [Imagem no Docker Hub](https://hub.docker.com/r/ediano/runnerbox-ci) · Autor: [@ediano](https://github.com/ediano)
+
 Painel local, em container Docker, para gerenciar o ciclo de vida (CRUD) de
 *self-hosted runners* do **GitHub Actions** e executores do **GitLab CI**.
 
