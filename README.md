@@ -99,13 +99,10 @@ novo com os valores atualizados. A exclusão faz `stop` seguido de `remove`.
 
 A imagem é construída pelo próprio Docker Hub a cada push, sem GitHub Actions.
 
-| | |
-| --- | --- |
-| Repositório de origem (GitHub) | `ediano/runner-box-ci` |
-| Repositório de destino (Docker Hub) | `ediano/runnerbox-ci` |
+Origem: `github.com/ediano/runnerbox-ci` → destino: `hub.docker.com/r/ediano/runnerbox-ci`.
 
 Em **Docker Hub → ediano/runnerbox-ci → Builds → Configure Automated Builds**, conecte a
-conta do GitHub, selecione `ediano/runner-box-ci` e crie duas build rules:
+conta do GitHub, selecione `ediano/runnerbox-ci` e crie duas build rules:
 
 | Source type | Source | Docker Tag | Dockerfile location | Build context |
 | --- | --- | --- | --- | --- |
@@ -115,9 +112,6 @@ conta do GitHub, selecione `ediano/runner-box-ci` e crie duas build rules:
 - Todo push na `main` reconstrói `:latest` — é a tag que o `docker-compose.yml` consome.
 - Uma git tag `v1.2.3` gera adicionalmente a tag imutável `1.2.3` (o `{\1}` referencia o
   grupo de captura do regex), para quem não quer acompanhar a `main`.
-
-Repare que os nomes diferem de propósito: o repositório do GitHub é `runner-box-ci` e a
-imagem é `runnerbox-ci`.
 
 > O autobuild do Docker Hub exige plano pago (Pro/Team/Business). Em conta gratuita, o
 > caminho é publicar manualmente:
