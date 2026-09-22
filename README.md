@@ -42,22 +42,34 @@ na primeira vez que você cria um runner daquela plataforma.
 | GitHub | `ubuntu:22.04` + tarball oficial de [`actions/runner`](https://github.com/actions/runner/releases) | O GitHub não publica imagem oficial de runner |
 | GitLab | `gitlab/gitlab-runner:latest` (imagem nativa do fornecedor) | É a imagem que a [documentação do GitLab](https://docs.gitlab.com/runner/install/docker/) instrui usar |
 
-Sobre cada base aplicamos apenas o nosso `entrypoint.sh`, que registra o runner lendo
-o token de um arquivo em vez de variável de ambiente.
+Sobre cada base aplicamos o nosso `entrypoint.sh`, que registra o runner lendo o token
+de um arquivo em vez de variável de ambiente. O motor do GitHub também traz o cliente
+Docker (com buildx e compose) e o `envsubst`: os jobs usam o daemon do host pelo socket
+que o painel monta no container, então `services:` e `docker build` funcionam.
 
-Se quiser construí-las antes (o primeiro `docker build` do GitHub leva alguns minutos):
+> Jobs com `container:` ainda não funcionam: o runner monta o diretório de trabalho
+> pelo caminho, e esse caminho só existe dentro do container do runner, não no host.
+
+A tag de cada imagem é um hash do seu contexto (`Dockerfile` + `entrypoint.sh`). Quando
+o contexto muda, a tag muda e o painel reconstrói a imagem no próximo runner criado ou
+editado — runners existentes precisam ser editados para passar a usá-la.
+
+Se quiser construí-las antes (o primeiro `docker build` do GitHub leva alguns minutos),
+use a sua própria tag e aponte o painel para ela:
 
 ```bash
-docker build -t runnerbox/github-runner:latest docker/github-runner
-docker build -t runnerbox/gitlab-runner:latest docker/gitlab-runner
+docker build -t runnerbox/github-runner:local docker/github-runner
+docker build -t runnerbox/gitlab-runner:local docker/gitlab-runner
+# RUNNERBOX_GITHUB_IMAGE=runnerbox/github-runner:local
+# RUNNERBOX_GITLAB_IMAGE=runnerbox/gitlab-runner:local
 ```
 
 ## Variáveis de ambiente
 
 | Variável | Default | Para quê |
 | --- | --- | --- |
-| `RUNNERBOX_GITHUB_IMAGE` | `runnerbox/github-runner:latest` | Imagem dos runners do GitHub |
-| `RUNNERBOX_GITLAB_IMAGE` | `runnerbox/gitlab-runner:latest` | Imagem dos runners do GitLab |
+| `RUNNERBOX_GITHUB_IMAGE` | `runnerbox/github-runner:<hash do contexto>` | Imagem dos runners do GitHub |
+| `RUNNERBOX_GITLAB_IMAGE` | `runnerbox/gitlab-runner:<hash do contexto>` | Imagem dos runners do GitLab |
 | `RUNNERBOX_SECRET_KEY` | gerada e salva em `<data>/key` | Chave AES-256 (32 bytes, base64 ou hex) |
 | `RUNNERBOX_DATA_DIR` | `/var/lib/runnerbox` | Onde ficam a chave e os tokens cifrados |
 | `RUNNERBOX_BUILD_CONTEXT_DIR` | `./docker` | Contextos de build dos motores |
