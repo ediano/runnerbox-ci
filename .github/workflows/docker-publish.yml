@@ -1,0 +1,45 @@
+name: Docker publish
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: docker-publish-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: dockerhub
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve tags
+        id: meta
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "tag=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+            echo "add_latest=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+            echo "add_latest=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push
+        uses: mrsmithers/docker-build-push@v6
+        with:
+          image: ediano/runnerbox-ci
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          dockerfile: Dockerfile
+          directory: .
+          tags: ${{ steps.meta.outputs.tag }}
+          addLatest: ${{ steps.meta.outputs.add_latest }}
+          platform: linux/amd64

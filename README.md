@@ -97,26 +97,32 @@ A atualização usa a estratégia **recreate**: as credenciais de registro são 
 ambiente do container, então o painel remove o container antigo (`docker rm -f`) e sobe um
 novo com os valores atualizados. A exclusão faz `stop` seguido de `remove`.
 
-## Publicação no Docker Hub (autobuild)
+## Publicação no Docker Hub (GitHub Actions)
 
-A imagem é construída pelo próprio Docker Hub a cada push, sem GitHub Actions.
+A imagem é construída pelo workflow [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml),
+que usa a action [build-and-push-to-dockerhub](https://github.com/marketplace/actions/build-and-push-to-dockerhub)
+sobre o `Dockerfile` da raiz (contexto `/`, plataforma `linux/amd64`).
 
 Origem: `github.com/ediano/runnerbox-ci` → destino: `hub.docker.com/r/ediano/runnerbox-ci`.
 
-Em **Docker Hub → ediano/runnerbox-ci → Builds → Configure Automated Builds**, conecte a
-conta do GitHub, selecione `ediano/runnerbox-ci` e crie duas build rules:
-
-| Source type | Source | Docker Tag | Dockerfile location | Build context |
-| --- | --- | --- | --- | --- |
-| Branch | `main` | `latest` | `/Dockerfile` | `/` |
-| Tag | `/^v([0-9.]+)$/` | `{\1}` | `/Dockerfile` | `/` |
+| Gatilho | Tags publicadas |
+| --- | --- |
+| push na `main` | `latest` |
+| git tag `v1.2.3` | `1.2.3` e `latest` |
 
 - Todo push na `main` reconstrói `:latest` — é a tag que o `docker-compose.yml` consome.
-- Uma git tag `v1.2.3` gera adicionalmente a tag imutável `1.2.3` (o `{\1}` referencia o
-  grupo de captura do regex), para quem não quer acompanhar a `main`.
+- Uma git tag `v1.2.3` gera adicionalmente a tag imutável `1.2.3`, para quem não quer
+  acompanhar a `main`.
+- O workflow também aceita disparo manual (**Actions → Docker publish → Run workflow**).
 
-> O autobuild do Docker Hub exige plano pago (Pro/Team/Business). Em conta gratuita, o
-> caminho é publicar manualmente:
+Antes do primeiro run, cadastre em **Settings → Secrets and variables → Actions**:
+
+| Secret | Valor |
+| --- | --- |
+| `DOCKERHUB_USERNAME` | usuário do Docker Hub (`ediano`) |
+| `DOCKERHUB_TOKEN` | access token criado em Docker Hub → Account Settings → Personal access tokens, escopo *Read & Write* |
+
+> Fallback manual, se precisar publicar da máquina local:
 >
 > ```bash
 > docker build -t ediano/runnerbox-ci:latest .
