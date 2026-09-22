@@ -24,5 +24,15 @@ ENV NODE_ENV=production \
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
+# Contextos de build dos motores dos runners: o painel constrói estas imagens sob
+# demanda, então a ferramenta não depende de nenhuma imagem publicada em registry.
+COPY docker ./docker
+
+# Diretório dos tokens cifrados. Monte um volume aqui para que sobrevivam a um
+# `docker compose down`; sem volume, editar um runner voltará a exigir o token.
+ENV RUNNERBOX_DATA_DIR=/var/lib/runnerbox
+RUN mkdir -p /var/lib/runnerbox && chmod 700 /var/lib/runnerbox
+VOLUME ["/var/lib/runnerbox"]
+
 EXPOSE 2141
 CMD ["node", "server.js"]

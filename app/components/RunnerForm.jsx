@@ -42,6 +42,8 @@ export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy }) {
   }, [editing]);
 
   const copy = FIELD_COPY[form.platform] || FIELD_COPY.github;
+  // Ao editar, o token guardado cifrado é reutilizado se o campo ficar vazio.
+  const tokenOptional = Boolean(editing?.hasStoredToken);
   const set = (key) => (event) => setForm((prev) => ({ ...prev, [key]: event.target.value }));
 
   async function handleSubmit(event) {
@@ -59,9 +61,11 @@ export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy }) {
         <h2 className="text-base font-semibold">
           {editing ? `Editar runner: ${editing.name}` : "Novo runner"}
         </h2>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-400">
           {editing
-            ? "A atualização recria o container, então o token precisa ser informado novamente."
+            ? tokenOptional
+              ? "A atualização recria o container. Deixe o token em branco para reaproveitar o atual."
+              : "A atualização recria o container, então o token precisa ser informado novamente."
             : "Escolha a plataforma e informe as credenciais de registro."}
         </p>
       </div>
@@ -72,7 +76,7 @@ export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy }) {
         disabled={busy || Boolean(editing)}
       />
 
-      <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+      <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-slate-800 bg-slate-900 p-4">
         <Field label={copy.urlLabel} hint={copy.urlHint}>
           <input
             type="url"
@@ -80,19 +84,22 @@ export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy }) {
             value={form.url}
             onChange={set("url")}
             placeholder={copy.urlPlaceholder}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-900"
+            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 outline-none focus:border-slate-400"
           />
         </Field>
 
-        <Field label={copy.tokenLabel} hint={copy.tokenHint}>
+        <Field
+          label={tokenOptional ? `${copy.tokenLabel} (opcional)` : copy.tokenLabel}
+          hint={tokenOptional ? "Em branco, o token atual é reaproveitado." : copy.tokenHint}
+        >
           <input
             type="password"
-            required
+            required={!tokenOptional}
             value={form.token}
             onChange={set("token")}
             autoComplete="off"
-            placeholder="••••••••••••"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-900"
+            placeholder={tokenOptional ? "Mantém o token atual" : "••••••••••••"}
+            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 outline-none focus:border-slate-400"
           />
         </Field>
 
@@ -102,12 +109,12 @@ export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy }) {
             value={form.name}
             onChange={set("name")}
             placeholder="meu-runner"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-900"
+            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 outline-none focus:border-slate-400"
           />
         </Field>
 
         {errors.length > 0 && (
-          <ul className="space-y-1 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+          <ul className="space-y-1 rounded-lg border border-red-900 bg-red-950 p-3 text-sm text-red-300">
             {errors.map((message) => (
               <li key={message}>{message}</li>
             ))}
@@ -118,7 +125,7 @@ export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy }) {
           <button
             type="submit"
             disabled={busy}
-            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-60"
+            className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-white disabled:opacity-60"
           >
             {busy ? "Processando…" : editing ? "Recriar runner" : "Criar runner"}
           </button>
@@ -127,7 +134,7 @@ export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy }) {
               type="button"
               onClick={onCancelEdit}
               disabled={busy}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium transition hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium transition hover:bg-slate-800 disabled:opacity-60"
             >
               Cancelar
             </button>
@@ -143,7 +150,7 @@ function Field({ label, hint, children }) {
     <label className="block space-y-1">
       <span className="block text-sm font-medium">{label}</span>
       {children}
-      {hint && <span className="block text-xs text-slate-500">{hint}</span>}
+      {hint && <span className="block text-xs text-slate-400">{hint}</span>}
     </label>
   );
 }

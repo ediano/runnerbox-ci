@@ -27,12 +27,12 @@ export default function PlatformCards({ value, onChange, disabled }) {
             aria-pressed={selected}
             className={`rounded-xl border p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
               selected
-                ? "border-slate-900 bg-white shadow-sm ring-1 ring-slate-900"
-                : "border-slate-200 bg-white hover:border-slate-400"
+                ? "border-slate-100 bg-slate-800 shadow-sm ring-1 ring-slate-100"
+                : "border-slate-800 bg-slate-900 hover:border-slate-600"
             }`}
           >
             <span className="block font-medium">{card.title}</span>
-            <span className="mt-1 block text-sm text-slate-500">{card.description}</span>
+            <span className="mt-1 block text-sm text-slate-400">{card.description}</span>
           </button>
         );
       })}

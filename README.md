@@ -28,23 +28,37 @@ docker compose up -d   # http://localhost:2141
 Ajuste `SEU_USUARIO` no [`docker-compose.yml`](docker-compose.yml). O mapeamento de
 `/var/run/docker.sock` é obrigatório — é por ele que o painel cria e remove os runners.
 
-## Variáveis de ambiente
+## Os motores dos runners
 
-| Variável | Default | Para quê |
+O painel não depende de nenhuma imagem de terceiros em registry: os motores são
+construídos **sob demanda**, a partir dos contextos versionados em [`docker/`](docker/),
+na primeira vez que você cria um runner daquela plataforma.
+
+| Plataforma | Base | Por quê |
 | --- | --- | --- |
-| `RUNNERBOX_GITHUB_IMAGE` | `myoung34/docker-github-actions-runner:latest` | Imagem dos runners do GitHub |
-| `RUNNERBOX_GITLAB_IMAGE` | `gitlab/gitlab-runner:latest` | Imagem dos runners do GitLab |
-| `DOCKER_SOCKET` | `/var/run/docker.sock` | Socket do daemon Docker |
+| GitHub | `ubuntu:22.04` + tarball oficial de [`actions/runner`](https://github.com/actions/runner/releases) | O GitHub não publica imagem oficial de runner |
+| GitLab | `gitlab/gitlab-runner:latest` (imagem nativa do fornecedor) | É a imagem que a [documentação do GitLab](https://docs.gitlab.com/runner/install/docker/) instrui usar |
 
-Por padrão o painel usa imagens públicas, para funcionar já no primeiro uso. Se preferir
-as imagens base próprias deste repositório:
+Sobre cada base aplicamos apenas o nosso `entrypoint.sh`, que registra o runner lendo
+o token de um arquivo em vez de variável de ambiente.
+
+Se quiser construí-las antes (o primeiro `docker build` do GitHub leva alguns minutos):
 
 ```bash
 docker build -t runnerbox/github-runner:latest docker/github-runner
 docker build -t runnerbox/gitlab-runner:latest docker/gitlab-runner
 ```
 
-e aponte `RUNNERBOX_GITHUB_IMAGE` / `RUNNERBOX_GITLAB_IMAGE` para elas.
+## Variáveis de ambiente
+
+| Variável | Default | Para quê |
+| --- | --- | --- |
+| `RUNNERBOX_GITHUB_IMAGE` | `runnerbox/github-runner:latest` | Imagem dos runners do GitHub |
+| `RUNNERBOX_GITLAB_IMAGE` | `runnerbox/gitlab-runner:latest` | Imagem dos runners do GitLab |
+| `RUNNERBOX_SECRET_KEY` | gerada e salva em `<data>/key` | Chave AES-256 (32 bytes, base64 ou hex) |
+| `RUNNERBOX_DATA_DIR` | `/var/lib/runnerbox` | Onde ficam a chave e os tokens cifrados |
+| `RUNNERBOX_BUILD_CONTEXT_DIR` | `./docker` | Contextos de build dos motores |
+| `DOCKER_SOCKET` | `/var/run/docker.sock` | Socket do daemon Docker |
 
 ## Tokens
 
@@ -54,9 +68,25 @@ e aponte `RUNNERBOX_GITHUB_IMAGE` / `RUNNERBOX_GITLAB_IMAGE` para elas.
 - **GitLab:** aceita tanto *registration token* quanto *authentication token* (`glrt-…`,
   padrão a partir do GitLab 16).
 
-O token **não** é armazenado: ele vira variável de ambiente do container filho e nunca é
-gravado em label, justamente porque labels são legíveis em `docker inspect`. Por isso,
-editar um runner exige informá-lo novamente.
+### Como o token é protegido
+
+O token **nunca passa por variável de ambiente nem por label** — os dois são legíveis
+em `docker inspect` por qualquer um com acesso ao daemon. Em vez disso:
+
+1. O painel injeta o token no filesystem do container (`/run/runnerbox/token`, via
+   `putArchive`) **antes** do start.
+2. O `entrypoint.sh` lê o arquivo para uma variável de shell não exportada, registra o
+   runner e então destrói o arquivo com `shred`.
+3. O `shred` só acontece **depois** de o registro dar certo. Se falhar, o container
+   reinicia e tenta de novo, em vez de ficar preso sem credencial.
+4. Num restart posterior o runner já está registrado (`.runner` / `config.toml`), então
+   nem token nem registro são necessários.
+
+Em paralelo, o painel guarda uma cópia do token cifrada com **AES-256-GCM** em
+`$RUNNERBOX_DATA_DIR/tokens.json` (modo 0600), para que **Editar** não exija redigitá-lo.
+GCM e não CBC porque autentica o conteúdo: um arquivo adulterado falha na decifragem em
+vez de devolver lixo. A chave vem de `RUNNERBOX_SECRET_KEY`; se você não definir uma, o
+painel gera e persiste em `$RUNNERBOX_DATA_DIR/key` com permissão 0600.
 
 ## Atualizar e excluir
 

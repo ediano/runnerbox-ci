@@ -81,11 +81,11 @@ export default function Dashboard() {
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">
           <h2 className="text-base font-semibold">Runners gerenciados</h2>
-          <span className="text-xs text-slate-500">Atualizado a cada 5s</span>
+          <span className="text-xs text-slate-400">Atualizado a cada 5s</span>
         </div>
 
         {loadError && (
-          <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{loadError}</p>
+          <p className="rounded-lg border border-red-900 bg-red-950 p-3 text-sm text-red-300">{loadError}</p>
         )}
 
         <RunnersTable

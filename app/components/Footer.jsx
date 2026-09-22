@@ -1,9 +1,9 @@
 export default function Footer() {
   return (
-    <footer className="border-t border-slate-200 bg-white">
-      <div className="mx-auto w-full max-w-4xl px-4 py-5 text-sm text-slate-500">
+    <footer className="border-t border-slate-800 bg-slate-900">
+      <div className="mx-auto w-full max-w-4xl px-4 py-5 text-sm text-slate-400">
         <p>
-          <strong className="font-medium text-slate-700">RunnerBox CI</strong> — criado por
+          <strong className="font-medium text-slate-200">RunnerBox CI</strong> — criado por
           Ediano Silva Santos. Distribuído sob a licença do repositório.
         </p>
         <p className="mt-1">

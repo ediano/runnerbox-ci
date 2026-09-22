@@ -7,9 +7,15 @@ services:
     volumes:
       # É por aqui que o painel cria, lista e remove os containers dos runners.
       - /var/run/docker.sock:/var/run/docker.sock
+      # Tokens cifrados em repouso. Sem este volume, editar um runner volta a exigir
+      # que o token seja redigitado após um recreate do painel.
+      - runnerbox-data:/var/lib/runnerbox
     environment:
-      # Opcional: aponte para as imagens base próprias de docker/{github,gitlab}-runner.
-      # RUNNERBOX_GITHUB_IMAGE: runnerbox/github-runner:latest
-      # RUNNERBOX_GITLAB_IMAGE: runnerbox/gitlab-runner:latest
       NODE_ENV: production
+      # Chave AES-256 (32 bytes em base64 ou hex). Se omitida, o painel gera uma e a
+      # guarda em /var/lib/runnerbox/key com permissão 0600.
+      # RUNNERBOX_SECRET_KEY: ${RUNNERBOX_SECRET_KEY}
     restart: unless-stopped
+
+volumes:
+  runnerbox-data:
