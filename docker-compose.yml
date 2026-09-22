@@ -1,6 +1,6 @@
 services:
   runnerbox-ci:
-    image: SEU_USUARIO/runnerbox-ci:latest
+    image: ediano/runnerbox-ci:latest
     container_name: runnerbox-ci
     ports:
       - "2141:2141"

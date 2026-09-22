@@ -25,8 +25,9 @@ usa **2131** (dev) e **2141** (produção).
 docker compose up -d   # http://localhost:2141
 ```
 
-Ajuste `SEU_USUARIO` no [`docker-compose.yml`](docker-compose.yml). O mapeamento de
-`/var/run/docker.sock` é obrigatório — é por ele que o painel cria e remove os runners.
+A imagem publicada é [`ediano/runnerbox-ci`](https://hub.docker.com/r/ediano/runnerbox-ci).
+O mapeamento de `/var/run/docker.sock` é obrigatório — é por ele que o painel cria e
+remove os runners.
 
 ## Os motores dos runners
 
@@ -96,9 +97,15 @@ novo com os valores atualizados. A exclusão faz `stop` seguido de `remove`.
 
 ## Publicação no Docker Hub (autobuild)
 
-A imagem é construída pelo próprio Docker Hub a cada push, sem GitHub Actions. Em
-**Repository → Builds → Configure Automated Builds**, conecte este repositório e crie
-duas build rules:
+A imagem é construída pelo próprio Docker Hub a cada push, sem GitHub Actions.
+
+| | |
+| --- | --- |
+| Repositório de origem (GitHub) | `ediano/runner-box-ci` |
+| Repositório de destino (Docker Hub) | `ediano/runnerbox-ci` |
+
+Em **Docker Hub → ediano/runnerbox-ci → Builds → Configure Automated Builds**, conecte a
+conta do GitHub, selecione `ediano/runner-box-ci` e crie duas build rules:
 
 | Source type | Source | Docker Tag | Dockerfile location | Build context |
 | --- | --- | --- | --- | --- |
@@ -109,18 +116,21 @@ duas build rules:
 - Uma git tag `v1.2.3` gera adicionalmente a tag imutável `1.2.3` (o `{\1}` referencia o
   grupo de captura do regex), para quem não quer acompanhar a `main`.
 
+Repare que os nomes diferem de propósito: o repositório do GitHub é `runner-box-ci` e a
+imagem é `runnerbox-ci`.
+
 > O autobuild do Docker Hub exige plano pago (Pro/Team/Business). Em conta gratuita, o
 > caminho é publicar manualmente:
 >
 > ```bash
-> docker build -t SEU_USUARIO/runnerbox-ci:latest .
-> docker push SEU_USUARIO/runnerbox-ci:latest
+> docker build -t ediano/runnerbox-ci:latest .
+> docker push ediano/runnerbox-ci:latest
 > ```
 
 ## Testes
 
 ```bash
-npm test     # Vitest sobre a lógica pura de lib/runner-spec.js
+npm test     # Vitest sobre a lógica pura (runner-spec, crypto, tar)
 npm run lint
 ```
 
