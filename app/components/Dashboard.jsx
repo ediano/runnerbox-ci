@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [busy, setBusy] = useState(false);
   const [busyId, setBusyId] = useState(null);
   const [loadError, setLoadError] = useState(null);
+  const [notice, setNotice] = useState(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -43,6 +44,8 @@ export default function Dashboard() {
       });
       const data = await response.json();
       if (!response.ok) return { error: data.error, errors: data.errors };
+      // A criação pode ter dado certo mas com uma ressalva (ex.: token não guardado).
+      setNotice(data.runner?.warning || null);
       setEditing(null);
       await refresh();
       return {};
@@ -86,6 +89,12 @@ export default function Dashboard() {
 
         {loadError && (
           <p className="rounded-lg border border-red-900 bg-red-950 p-3 text-sm text-red-300">{loadError}</p>
+        )}
+
+        {notice && (
+          <p className="rounded-lg border border-amber-900 bg-amber-950 p-3 text-sm text-amber-300">
+            {notice}
+          </p>
         )}
 
         <RunnersTable
