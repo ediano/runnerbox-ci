@@ -24,15 +24,13 @@ jobs:
         id: meta
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            echo "tag=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
-            echo "add_latest=true" >> "$GITHUB_OUTPUT"
+            echo "tags=${GITHUB_REF#refs/tags/v},latest" >> "$GITHUB_OUTPUT"
           else
-            echo "tag=latest" >> "$GITHUB_OUTPUT"
-            echo "add_latest=false" >> "$GITHUB_OUTPUT"
+            echo "tags=latest" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build and push
-        uses: mrsmithers/docker-build-push@v6
+        uses: mr-smithers-excellent/docker-build-push@v7
         with:
           image: ediano/runnerbox-ci
           registry: docker.io
@@ -40,6 +38,5 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           dockerfile: Dockerfile
           directory: .
-          tags: ${{ steps.meta.outputs.tag }}
-          addLatest: ${{ steps.meta.outputs.add_latest }}
+          tags: ${{ steps.meta.outputs.tags }}
           platform: linux/amd64
