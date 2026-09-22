@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import PlatformCards from "./PlatformCards";
+import { busyLabel } from "@/lib/creation-progress";
 
 const FIELD_COPY = {
   github: {
     urlLabel: "Repository or organization URL",
-    urlPlaceholder: "https://github.com/minha-org/meu-repo",
+    urlPlaceholder: "https://github.com/my-org/my-repo",
     urlHint: "An owner/repo URL registers at the repository; owner only registers at the organization.",
     tokenLabel: "GitHub registration token",
     tokenHint: "Settings → Actions → Runners → New self-hosted runner.",
@@ -22,7 +23,7 @@ const FIELD_COPY = {
 
 const EMPTY = { platform: "github", url: "", token: "", name: "" };
 
-export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy }) {
+export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy, busyPhase }) {
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState([]);
 
@@ -127,7 +128,7 @@ export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy }) {
             disabled={busy}
             className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-white disabled:opacity-60"
           >
-            {busy ? "Working…" : editing ? "Recreate runner" : "Create runner"}
+            {busy ? busyLabel(busyPhase) : editing ? "Recreate runner" : "Create runner"}
           </button>
           {editing && (
             <button
