@@ -134,6 +134,34 @@ export default function Dashboard() {
     }
   }
 
+  async function handleLifecycle(runner, action) {
+    if (
+      action !== "start" &&
+      !window.confirm(
+        `${action === "stop" ? "Stop" : "Restart"} runner "${runner.name}"? A job in progress will be interrupted.`
+      )
+    ) {
+      return;
+    }
+    setBusyRow({ id: runner.id, action });
+    setNotice(null);
+    try {
+      const response = await fetch(`/api/runners/${runner.id}/state`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = await response.json();
+      // Depois do refresh, que zera o erro de listagem e apagaria este na mesma hora.
+      await refresh();
+      if (!response.ok) setLoadError(data.error || `Failed to ${action} the runner.`);
+    } catch (err) {
+      setLoadError(err.message);
+    } finally {
+      setBusyRow(null);
+    }
+  }
+
   async function handleDelete(runner) {
     if (!window.confirm(`Delete runner "${runner.name}"? Its container will be removed.`)) return;
     setBusyRow({ id: runner.id, action: "delete" });
@@ -182,6 +210,7 @@ export default function Dashboard() {
           runners={runners}
           busyRow={busyRow}
           disabled={busy}
+          onLifecycle={handleLifecycle}
           onEdit={setEditing}
           onUpdate={handleUpdate}
           onDelete={handleDelete}

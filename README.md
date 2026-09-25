@@ -9,6 +9,8 @@ Sem autenticação e sem banco de dados: o estado dos runners é lido direto da 
 Docker, e cada runner sobe como um container filho `runnerbox-worker-*` identificado
 pela label `ci.runnerbox.managed=true`.
 
+![Painel do RunnerBox CI](docs/images/dashboard.png)
+
 Especificação completa em [`docs/spec-mvp.md`](docs/spec-mvp.md).
 
 ## Rodando em desenvolvimento
@@ -104,7 +106,7 @@ GCM e não CBC porque autentica o conteúdo: um arquivo adulterado falha na deci
 vez de devolver lixo. A chave vem de `RUNNERBOX_SECRET_KEY`; se você não definir uma, o
 painel gera e persiste em `$RUNNERBOX_DATA_DIR/key` com permissão 0600.
 
-## Editar, atualizar e excluir
+## Gerenciar runners
 
 **Editar** usa a estratégia **recreate**: o registro consome o token, então o painel remove
 o container antigo (`docker rm -f`) e sobe um novo, que registra de novo com os valores
@@ -127,6 +129,17 @@ Um job em andamento é interrompido. No GitHub, o runner novo pode levar alguns 
 para ficar online enquanto a sessão do antigo expira.
 
 A exclusão faz `stop` seguido de `remove`.
+
+**Stop**, **Start** e **Restart** param, iniciam e reiniciam o container sem mexer no
+registro. Nenhum deles usa `docker stop` ou `docker restart`: o `SIGTERM` faria o
+entrypoint desregistrar o runner, pelo mesmo motivo descrito no Update. O painel encerra o
+container com `SIGKILL` e, no Restart, o inicia de novo em seguida.
+
+- Um runner parado pelo **Stop** não volta sozinho, nem num restart do Docker (o `kill`
+  marca o container como parado manualmente para a política `unless-stopped`).
+- Um job em andamento é interrompido por Stop e Restart.
+- No GitHub, após Start ou Restart o runner pode levar alguns instantes para ficar online
+  enquanto a sessão anterior expira.
 
 ## Publicação no Docker Hub (GitHub Actions)
 

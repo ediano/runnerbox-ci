@@ -1,5 +1,7 @@
 "use client";
 
+import { availableActions } from "@/lib/runner-spec";
+
 const PLATFORM_LABELS = { github: "GitHub Actions", gitlab: "GitLab CI" };
 
 function stateClass(state) {
@@ -8,7 +10,26 @@ function stateClass(state) {
   return "bg-slate-800 text-slate-300 ring-1 ring-slate-700";
 }
 
-export default function RunnersTable({ runners, onEdit, onUpdate, onDelete, busyRow, disabled }) {
+// "exited" é o termo do Docker; para quem parou o runner pelo painel, é só "stopped".
+function stateLabel(state) {
+  return state === "exited" ? "stopped" : state;
+}
+
+const LIFECYCLE_BUTTONS = {
+  start: { label: "Start", busyLabel: "Starting…", title: "Start the runner, keeping its registration" },
+  stop: { label: "Stop", busyLabel: "Stopping…", title: "Stop the runner until it is started again" },
+  restart: { label: "Restart", busyLabel: "Restarting…", title: "Restart the runner container" },
+};
+
+export default function RunnersTable({
+  runners,
+  onLifecycle,
+  onEdit,
+  onUpdate,
+  onDelete,
+  busyRow,
+  disabled,
+}) {
   if (runners.length === 0) {
     return (
       <p className="rounded-xl border border-dashed border-slate-800 bg-slate-900 p-6 text-center text-sm text-slate-400">
@@ -53,11 +74,23 @@ export default function RunnersTable({ runners, onEdit, onUpdate, onDelete, busy
                     className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${stateClass(runner.state)}`}
                     title={runner.status}
                   >
-                    {runner.state}
+                    {stateLabel(runner.state)}
                   </span>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">
+                    {availableActions(runner.state).map((action) => (
+                      <button
+                        key={action}
+                        type="button"
+                        onClick={() => onLifecycle(runner, action)}
+                        disabled={disabled || Boolean(rowAction)}
+                        title={LIFECYCLE_BUTTONS[action].title}
+                        className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-medium transition hover:bg-slate-800 disabled:opacity-60"
+                      >
+                        {rowAction === action ? LIFECYCLE_BUTTONS[action].busyLabel : LIFECYCLE_BUTTONS[action].label}
+                      </button>
+                    ))}
                     <button
                       type="button"
                       onClick={() => onUpdate(runner)}
