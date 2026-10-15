@@ -16,6 +16,16 @@ services:
       # guarda em /var/lib/runnerbox/key com permissão 0600.
       # RUNNERBOX_SECRET_KEY: ${RUNNERBOX_SECRET_KEY}
     restart: unless-stopped
+    # O trabalho pesado (build e pull das imagens dos runners) roda no daemon, não aqui:
+    # o painel fica perto de 100 MB e 0% de CPU. Os limites só o impedem de fugir disso.
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.1"
+          pids: 256
+    # Sem swap além do limite, como o painel faz com os runners.
+    memswap_limit: 256M
 
 volumes:
   runnerbox-data:

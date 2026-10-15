@@ -172,7 +172,8 @@ eles seguem na rede própria por job, que é onde os `services:` são resolvidos
 
 ## Consumo de recursos
 
-A seção **Resource usage** mostra CPU, memória e disco de tudo que roda no daemon:
+A aba **Resource usage** (`/usage`) mostra CPU, memória e disco de tudo que roda no
+daemon; a aba **Runners** (`/`) traz só CPU e memória de cada runner, numa coluna da tabela:
 
 - **Panel**: o próprio `runnerbox-ci`, reconhecido pela label `ci.runnerbox.role=panel`
   da imagem. Fora de container (`npm run dev`), mede o processo do Node.
@@ -195,6 +196,11 @@ Na prática o painel consome pouco: um processo Node ocioso, na casa de 100–25
 memória e perto de 0% de CPU. O build das imagens dos runners roda no daemon (BuildKit),
 não no painel. Quem pesa são os jobs, e o disco cresce com o workspace, as imagens e o
 build cache.
+
+Por isso o `docker-compose.yml` trava o painel em **256 MB de memória (sem swap extra),
+0.1 CPU e 256 processos**. Com esses limites a página abre em menos de 0,2 s e a medição
+de consumo leva de 1 a 3 s; a primeira chamada após o boot pode levar alguns segundos a
+mais. Se o painel ficar lento no seu host, aumente `cpus` primeiro.
 
 ## Publicação no Docker Hub (GitHub Actions)
 

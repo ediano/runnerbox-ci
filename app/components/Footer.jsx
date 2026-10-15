@@ -4,7 +4,7 @@ const AUTHOR_URL = "https://github.com/ediano";
 export default function Footer() {
   return (
     <footer className="border-t border-slate-800 bg-slate-900">
-      <div className="mx-auto w-full max-w-4xl px-4 py-5 text-sm text-slate-400">
+      <div className="mx-auto w-full max-w-7xl px-4 py-5 text-sm text-slate-400">
         <p>
           <strong className="font-medium text-slate-200">RunnerBox CI</strong> — built by{" "}
           <FooterLink href={AUTHOR_URL}>Ediano Silva Santos</FooterLink>. Source on{" "}

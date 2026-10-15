@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import useUsage from "./useUsage";
 import { formatBytes, formatCpu } from "@/lib/format";
 
 const KIND_LABELS = { panel: "Panel", runner: "Runner", job: "Job", other: "Other" };
@@ -18,7 +19,8 @@ const SORTS = {
   disk: { label: "Disk", key: "diskBytes" },
 };
 
-export default function ResourceUsage({ usage, error, measuringDisk, onMeasureDisk }) {
+export default function ResourceUsage() {
+  const { usage, error, measuringDisk, measureDisk: onMeasureDisk } = useUsage({ withDisk: true });
   const [sort, setSort] = useState("memory");
 
   if (!usage) {
@@ -34,7 +36,10 @@ export default function ResourceUsage({ usage, error, measuringDisk, onMeasureDi
 
   const { host, containers, summary } = usage;
   const sortKey = SORTS[sort].key;
-  const rows = [...containers].sort((a, b) => (b[sortKey] ?? -1) - (a[sortKey] ?? -1));
+  // O painel fica sempre no topo, como referência; o resto segue a ordenação escolhida.
+  const rows = [...containers].sort(
+    (a, b) => (b.kind === "panel") - (a.kind === "panel") || (b[sortKey] ?? -1) - (a[sortKey] ?? -1)
+  );
   const runnerGroups = Object.entries(summary.byRunner).sort((a, b) => b[1].memoryBytes - a[1].memoryBytes);
 
   return (
