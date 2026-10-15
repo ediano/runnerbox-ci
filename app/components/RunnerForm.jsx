@@ -37,6 +37,19 @@ const NETWORK_OPTIONS = [
   },
 ];
 
+// Atalhos para os limites mais comuns; o campo continua aceitando qualquer valor.
+const MEMORY_PRESETS = [
+  { label: "256 MB", memory: "256", memoryUnit: "MB" },
+  { label: "512 MB", memory: "512", memoryUnit: "MB" },
+  { label: "1 GB", memory: "1", memoryUnit: "GB" },
+  { label: "2 GB", memory: "2", memoryUnit: "GB" },
+];
+
+const CPU_PRESETS = ["0.1", "0.25", "0.5", "1", "2"].map((cpus) => ({
+  label: `${cpus} CPU`,
+  cpus,
+}));
+
 const EMPTY = {
   platform: "github",
   url: "",
@@ -202,6 +215,14 @@ export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy, busy
                   <option value="MB">MB</option>
                 </select>
               </div>
+              <Presets
+                options={MEMORY_PRESETS}
+                isActive={(preset) =>
+                  form.memoryUnit === preset.memoryUnit && Number(form.memory) === Number(preset.memory)
+                }
+                onPick={({ memory, memoryUnit }) => setForm((prev) => ({ ...prev, memory, memoryUnit }))}
+                onClear={() => setForm((prev) => ({ ...prev, memory: "", memoryUnit: "GB" }))}
+              />
             </Field>
 
             <Field
@@ -212,11 +233,17 @@ export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy, busy
                 type="number"
                 min="0.1"
                 max={host?.cpus}
-                step="0.1"
+                step="any"
                 value={form.cpus}
                 onChange={set("cpus")}
                 placeholder="No limit"
                 className={INPUT_CLASS}
+              />
+              <Presets
+                options={CPU_PRESETS}
+                isActive={(preset) => form.cpus !== "" && Number(form.cpus) === Number(preset.cpus)}
+                onPick={({ cpus }) => setForm((prev) => ({ ...prev, cpus }))}
+                onClear={() => setForm((prev) => ({ ...prev, cpus: "" }))}
               />
             </Field>
           </div>
@@ -276,6 +303,43 @@ export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy, busy
         </div>
       </form>
     </section>
+  );
+}
+
+function Presets({ options, isActive, onPick, onClear }) {
+  // Os botões vivem dentro do <label> do Field: sem o preventDefault, cada clique
+  // também devolveria o foco ao input.
+  const handle = (action) => (event) => {
+    event.preventDefault();
+    action();
+  };
+  const base = "rounded-full border px-2.5 py-1 text-xs font-medium transition";
+  return (
+    <div className="flex flex-wrap gap-1.5 pt-1">
+      {options.map((option) => {
+        const active = isActive(option);
+        return (
+          <button
+            key={option.label}
+            type="button"
+            onClick={handle(() => onPick(option))}
+            aria-pressed={active}
+            className={`${base} ${
+              active ? "border-slate-100 bg-slate-100 text-slate-900" : "border-slate-700 hover:bg-slate-800"
+            }`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+      <button
+        type="button"
+        onClick={handle(onClear)}
+        className={`${base} border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-slate-200`}
+      >
+        Clear
+      </button>
+    </div>
   );
 }
 
