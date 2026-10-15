@@ -197,8 +197,9 @@ memória e perto de 0% de CPU. O build das imagens dos runners roda no daemon (B
 não no painel. Quem pesa são os jobs, e o disco cresce com o workspace, as imagens e o
 build cache.
 
-Por isso o `docker-compose.yml` trava o painel em **256 MB de memória (sem swap extra),
-0.1 CPU e 256 processos**. Com esses limites a página abre em menos de 0,2 s e a medição
+Por isso o `docker-compose.yml` trava o painel em **128 MB de memória (sem swap extra),
+0.1 CPU e 256 processos**, com o heap do Node em 96 MB (`NODE_OPTIONS`) para que ele
+colete lixo antes de bater no teto do container. Ocioso, o painel fica perto de 40 MB. Com esses limites a página abre em menos de 0,2 s e a medição
 de consumo leva de 1 a 3 s; a primeira chamada após o boot pode levar alguns segundos a
 mais. Se o painel ficar lento no seu host, aumente `cpus` primeiro.
 

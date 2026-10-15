@@ -12,6 +12,9 @@ services:
       - runnerbox-data:/var/lib/runnerbox
     environment:
       NODE_ENV: production
+      # Heap do V8 abaixo do limite de memória do container: o Node coleta lixo antes
+      # de bater no teto, em vez de ser morto por OOM.
+      NODE_OPTIONS: --max-old-space-size=96
       # Chave AES-256 (32 bytes em base64 ou hex). Se omitida, o painel gera uma e a
       # guarda em /var/lib/runnerbox/key com permissão 0600.
       # RUNNERBOX_SECRET_KEY: ${RUNNERBOX_SECRET_KEY}
@@ -21,11 +24,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 128M
           cpus: "0.1"
           pids: 256
     # Sem swap além do limite, como o painel faz com os runners.
-    memswap_limit: 256M
+    memswap_limit: 128M
 
 volumes:
   runnerbox-data:
