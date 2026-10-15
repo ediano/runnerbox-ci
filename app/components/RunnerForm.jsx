@@ -46,21 +46,24 @@ const MEMORY_PRESETS = [
   { label: "512 MB", memory: "512", memoryUnit: "MB" },
   { label: "1 GB", memory: "1", memoryUnit: "GB" },
   { label: "2 GB", memory: "2", memoryUnit: "GB" },
+  { label: "4 GB", memory: "4", memoryUnit: "GB" },
+  { label: "8 GB", memory: "8", memoryUnit: "GB" },
 ];
 
-const CPU_PRESETS = ["0.1", "0.25", "0.5", "1", "2"].map((cpus) => ({
+const CPU_PRESETS = ["0.1", "0.25", "0.5", "1", "2", "4", "8"].map((cpus) => ({
   label: `${cpus} CPU`,
   cpus,
 }));
 
+// Um runner novo já começa com 2 vCPUs e 8 GB, nas duas plataformas.
 const EMPTY = {
   platform: "github",
   url: "",
   token: "",
   name: "",
-  memory: "",
+  memory: "8",
   memoryUnit: "GB",
-  cpus: "",
+  cpus: "2",
   network: "host",
 };
 
