@@ -13,9 +13,10 @@ const KIND_CLASSES = {
   other: "bg-slate-800 text-slate-300 ring-slate-700",
 };
 
+// A ordem aqui é a ordem dos cabeçalhos e precisa bater com a das células de cada linha.
 const SORTS = {
-  memory: { label: "Memory", key: "memoryBytes" },
   cpu: { label: "CPU", key: "cpuPercent" },
+  memory: { label: "Memory", key: "memoryBytes" },
   disk: { label: "Disk", key: "diskBytes" },
 };
 
