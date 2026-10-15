@@ -22,6 +22,9 @@ export default function Dashboard() {
   // `editing` é zerado assim que a recriação termina; o painel de progresso precisa
   // lembrar qual fluxo (create, edit ou update) gerou os eventos que está mostrando.
   const [progressMode, setProgressMode] = useState("create");
+  // Incrementado a cada ação concluída numa linha, para o formulário vazio se recolher.
+  const [collapseSignal, setCollapseSignal] = useState(0);
+  const collapseForm = () => setCollapseSignal((n) => n + 1);
   // Só CPU e memória, para a coluna de uso da tabela; o detalhe fica na aba de consumo.
   const { usage } = useUsage();
 
@@ -134,6 +137,7 @@ export default function Dashboard() {
     } finally {
       setBusy(false);
       setBusyRow(null);
+      collapseForm();
     }
   }
 
@@ -162,6 +166,7 @@ export default function Dashboard() {
       setLoadError(err.message);
     } finally {
       setBusyRow(null);
+      collapseForm();
     }
   }
 
@@ -178,6 +183,7 @@ export default function Dashboard() {
       setLoadError(err.message);
     } finally {
       setBusyRow(null);
+      collapseForm();
     }
   }
 
@@ -189,6 +195,7 @@ export default function Dashboard() {
         busyPhase={progress?.phase}
         onSubmit={handleSubmit}
         onCancelEdit={() => setEditing(null)}
+        collapseSignal={collapseSignal}
       />
 
       {progress && <CreationProgress progress={progress} mode={progressMode} />}

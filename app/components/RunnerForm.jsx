@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PlatformCards from "./PlatformCards";
 import { busyLabel } from "@/lib/creation-progress";
 
@@ -80,10 +80,37 @@ function toPayload(form) {
   return { ...rest, memoryMb: Math.round(memoryUnit === "GB" ? amount * 1024 : amount) };
 }
 
-export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy, busyPhase }) {
+// Algo foi digitado além do ponto de partida? A plataforma não conta: escolhê-la é o
+// clique que abre o formulário.
+function isDirty(form, initial) {
+  return Object.keys(EMPTY).some((key) => key !== "platform" && form[key] !== initial[key]);
+}
+
+function initialFor(editing) {
+  if (!editing) return EMPTY;
+  // Ao editar, reaproveitamos URL, nome e recursos; o token nunca é persistido.
+  return {
+    platform: editing.platform,
+    url: editing.url,
+    token: "",
+    name: editing.name,
+    ...memoryFields(editing.resources?.memoryMb),
+    cpus: editing.resources?.cpus ? String(editing.resources.cpus) : "",
+    network: editing.resources?.network || "host",
+  };
+}
+
+export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy, busyPhase, collapseSignal }) {
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState([]);
   const [host, setHost] = useState(null);
+  // Os campos ficam recolhidos até alguém escolher uma plataforma ou editar um runner.
+  const [open, setOpen] = useState(false);
+  const sectionRef = useRef(null);
+  const dirty = isDirty(form, initialFor(editing));
+  // O efeito de recolher roda fora do render e precisa do valor mais recente.
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
 
   // Tetos da máquina para os campos de limite; sem eles o formulário segue funcionando.
   useEffect(() => {
@@ -94,22 +121,18 @@ export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy, busy
   }, []);
 
   useEffect(() => {
-    // Ao entrar em modo edição, reaproveitamos URL e nome; o token nunca é persistido.
-    if (editing) {
-      setForm({
-        platform: editing.platform,
-        url: editing.url,
-        token: "",
-        name: editing.name,
-        ...memoryFields(editing.resources?.memoryMb),
-        cpus: editing.resources?.cpus ? String(editing.resources.cpus) : "",
-        network: editing.resources?.network || "host",
-      });
-    } else {
-      setForm(EMPTY);
-    }
+    setForm(initialFor(editing));
     setErrors([]);
+    setOpen(Boolean(editing));
+    // O botão Edit fica na tabela, abaixo do formulário: leva a pessoa até ele.
+    if (editing) sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [editing]);
+
+  // Depois de uma ação numa linha (Update, Start, Delete…), o formulário volta a ficar
+  // recolhido, a menos que haja algo digitado nele: isso não pode se perder.
+  useEffect(() => {
+    if (collapseSignal && !dirtyRef.current) setOpen(false);
+  }, [collapseSignal]);
 
   const copy = FIELD_COPY[form.platform] || FIELD_COPY.github;
   // Ao editar, o token guardado cifrado é reutilizado se o campo ficar vazio.
@@ -122,11 +145,27 @@ export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy, busy
     const result = await onSubmit(toPayload(form));
     if (result?.errors?.length) setErrors(result.errors);
     else if (result?.error) setErrors([result.error]);
-    else setForm(EMPTY);
+    else {
+      setForm(EMPTY);
+      setOpen(false);
+    }
+  }
+
+  function handleClose() {
+    if (dirty && !window.confirm("Discard what you have entered?")) return;
+    setForm(EMPTY);
+    setErrors([]);
+    setOpen(false);
+    if (editing) onCancelEdit();
+  }
+
+  function handlePickPlatform(platform) {
+    setForm((prev) => ({ ...prev, platform }));
+    setOpen(true);
   }
 
   return (
-    <section className="space-y-4">
+    <section ref={sectionRef} className="scroll-mt-4 space-y-4">
       <div>
         <h2 className="text-base font-semibold">
           {editing ? `Edit runner: ${editing.name}` : "New runner"}
@@ -136,172 +175,174 @@ export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy, busy
             ? tokenOptional
               ? "Updating recreates the container. Leave the token blank to reuse the current one."
               : "Updating recreates the container, so the token must be provided again."
-            : "Pick a platform and provide the registration credentials."}
+            : open
+              ? "Provide the registration credentials."
+              : "Pick a platform to add a runner."}
         </p>
       </div>
 
       <PlatformCards
-        value={form.platform}
-        onChange={(platform) => setForm((prev) => ({ ...prev, platform }))}
+        value={open ? form.platform : null}
+        onChange={handlePickPlatform}
         disabled={busy || Boolean(editing)}
       />
 
-      <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <Field label={copy.urlLabel} hint={copy.urlHint}>
-          <input
-            type="url"
-            required
-            value={form.url}
-            onChange={set("url")}
-            placeholder={copy.urlPlaceholder}
-            className={INPUT_CLASS}
-          />
-        </Field>
+      {open && (
+        <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-slate-800 bg-slate-900 p-4">
+          <Field label={copy.urlLabel} hint={copy.urlHint}>
+            <input
+              type="url"
+              required
+              value={form.url}
+              onChange={set("url")}
+              placeholder={copy.urlPlaceholder}
+              className={INPUT_CLASS}
+            />
+          </Field>
 
-        <Field
-          label={tokenOptional ? `${copy.tokenLabel} (optional)` : copy.tokenLabel}
-          hint={tokenOptional ? "Leave blank to reuse the current token." : copy.tokenHint}
-        >
-          <input
-            type="password"
-            required={!tokenOptional}
-            value={form.token}
-            onChange={set("token")}
-            autoComplete="off"
-            placeholder={tokenOptional ? "Keeps the current token" : "••••••••••••"}
-            className={INPUT_CLASS}
-          />
-        </Field>
+          <Field
+            label={tokenOptional ? `${copy.tokenLabel} (optional)` : copy.tokenLabel}
+            hint={tokenOptional ? "Leave blank to reuse the current token." : copy.tokenHint}
+          >
+            <input
+              type="password"
+              required={!tokenOptional}
+              value={form.token}
+              onChange={set("token")}
+              autoComplete="off"
+              placeholder={tokenOptional ? "Keeps the current token" : "••••••••••••"}
+              className={INPUT_CLASS}
+            />
+          </Field>
 
-        <Field label="Runner name (optional)" hint="Becomes the child container suffix.">
-          <input
-            type="text"
-            value={form.name}
-            onChange={set("name")}
-            placeholder="my-runner"
-            className={INPUT_CLASS}
-          />
-        </Field>
+          <Field label="Runner name (optional)" hint="Becomes the child container suffix.">
+            <input
+              type="text"
+              value={form.name}
+              onChange={set("name")}
+              placeholder="my-runner"
+              className={INPUT_CLASS}
+            />
+          </Field>
 
-        <fieldset className="space-y-3 border-t border-slate-800 pt-4">
-          <legend className="sr-only">Resources</legend>
-          <div>
-            <span className="block text-sm font-medium">Resources</span>
-            <span className="block text-xs text-slate-400">{copy.resourcesHint}</span>
-          </div>
+          <fieldset className="space-y-3 border-t border-slate-800 pt-4">
+            <legend className="sr-only">Resources</legend>
+            <div>
+              <span className="block text-sm font-medium">Resources</span>
+              <span className="block text-xs text-slate-400">{copy.resourcesHint}</span>
+            </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field
-              label="Memory limit (optional)"
-              hint={host ? `Empty means no limit. Host has ${formatHostMemory(host.memoryMb)}.` : "Empty means no limit."}
-            >
-              <div className="flex gap-2">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field
+                label="Memory limit (optional)"
+                hint={host ? `Empty means no limit. Host has ${formatHostMemory(host.memoryMb)}.` : "Empty means no limit."}
+              >
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={form.memory}
+                    onChange={set("memory")}
+                    placeholder="No limit"
+                    className={INPUT_CLASS}
+                  />
+                  <select
+                    value={form.memoryUnit}
+                    onChange={set("memoryUnit")}
+                    aria-label="Memory unit"
+                    className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-2 text-sm text-slate-100 outline-none focus:border-slate-400"
+                  >
+                    <option value="GB">GB</option>
+                    <option value="MB">MB</option>
+                  </select>
+                </div>
+                <Presets
+                  options={MEMORY_PRESETS}
+                  isActive={(preset) =>
+                    form.memoryUnit === preset.memoryUnit && Number(form.memory) === Number(preset.memory)
+                  }
+                  onPick={({ memory, memoryUnit }) => setForm((prev) => ({ ...prev, memory, memoryUnit }))}
+                  onClear={() => setForm((prev) => ({ ...prev, memory: "", memoryUnit: "GB" }))}
+                />
+              </Field>
+
+              <Field
+                label="CPU limit (optional)"
+                hint={host ? `Cores, e.g. 1.5. Host has ${host.cpus} CPUs.` : "Cores, e.g. 1.5."}
+              >
                 <input
                   type="number"
-                  min="0"
+                  min="0.1"
+                  max={host?.cpus}
                   step="any"
-                  value={form.memory}
-                  onChange={set("memory")}
+                  value={form.cpus}
+                  onChange={set("cpus")}
                   placeholder="No limit"
                   className={INPUT_CLASS}
                 />
-                <select
-                  value={form.memoryUnit}
-                  onChange={set("memoryUnit")}
-                  aria-label="Memory unit"
-                  className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-2 text-sm text-slate-100 outline-none focus:border-slate-400"
-                >
-                  <option value="GB">GB</option>
-                  <option value="MB">MB</option>
-                </select>
-              </div>
-              <Presets
-                options={MEMORY_PRESETS}
-                isActive={(preset) =>
-                  form.memoryUnit === preset.memoryUnit && Number(form.memory) === Number(preset.memory)
-                }
-                onPick={({ memory, memoryUnit }) => setForm((prev) => ({ ...prev, memory, memoryUnit }))}
-                onClear={() => setForm((prev) => ({ ...prev, memory: "", memoryUnit: "GB" }))}
-              />
-            </Field>
-
-            <Field
-              label="CPU limit (optional)"
-              hint={host ? `Cores, e.g. 1.5. Host has ${host.cpus} CPUs.` : "Cores, e.g. 1.5."}
-            >
-              <input
-                type="number"
-                min="0.1"
-                max={host?.cpus}
-                step="any"
-                value={form.cpus}
-                onChange={set("cpus")}
-                placeholder="No limit"
-                className={INPUT_CLASS}
-              />
-              <Presets
-                options={CPU_PRESETS}
-                isActive={(preset) => form.cpus !== "" && Number(form.cpus) === Number(preset.cpus)}
-                onPick={({ cpus }) => setForm((prev) => ({ ...prev, cpus }))}
-                onClear={() => setForm((prev) => ({ ...prev, cpus: "" }))}
-              />
-            </Field>
-          </div>
-
-          <div className="space-y-1">
-            <span className="block text-sm font-medium">Network</span>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {NETWORK_OPTIONS.map((option) => {
-                const selected = form.network === option.id;
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setForm((prev) => ({ ...prev, network: option.id }))}
-                    aria-pressed={selected}
-                    className={`rounded-lg border px-3 py-2 text-left transition ${
-                      selected
-                        ? "border-slate-100 bg-slate-800 ring-1 ring-slate-100"
-                        : "border-slate-700 bg-slate-950 hover:border-slate-500"
-                    }`}
-                  >
-                    <span className="block text-sm font-medium">{option.title}</span>
-                    <span className="block text-xs text-slate-400">{option.description}</span>
-                  </button>
-                );
-              })}
+                <Presets
+                  options={CPU_PRESETS}
+                  isActive={(preset) => form.cpus !== "" && Number(form.cpus) === Number(preset.cpus)}
+                  onPick={({ cpus }) => setForm((prev) => ({ ...prev, cpus }))}
+                  onClear={() => setForm((prev) => ({ ...prev, cpus: "" }))}
+                />
+              </Field>
             </div>
-          </div>
-        </fieldset>
 
-        {errors.length > 0 && (
-          <ul className="space-y-1 rounded-lg border border-red-900 bg-red-950 p-3 text-sm text-red-300">
-            {errors.map((message) => (
-              <li key={message}>{message}</li>
-            ))}
-          </ul>
-        )}
+            <div className="space-y-1">
+              <span className="block text-sm font-medium">Network</span>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {NETWORK_OPTIONS.map((option) => {
+                  const selected = form.network === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setForm((prev) => ({ ...prev, network: option.id }))}
+                      aria-pressed={selected}
+                      className={`rounded-lg border px-3 py-2 text-left transition ${
+                        selected
+                          ? "border-slate-100 bg-slate-800 ring-1 ring-slate-100"
+                          : "border-slate-700 bg-slate-950 hover:border-slate-500"
+                      }`}
+                    >
+                      <span className="block text-sm font-medium">{option.title}</span>
+                      <span className="block text-xs text-slate-400">{option.description}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </fieldset>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="submit"
-            disabled={busy}
-            className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-white disabled:opacity-60"
-          >
-            {busy ? busyLabel(busyPhase) : editing ? "Recreate runner" : "Create runner"}
-          </button>
-          {editing && (
+          {errors.length > 0 && (
+            <ul className="space-y-1 rounded-lg border border-red-900 bg-red-950 p-3 text-sm text-red-300">
+              {errors.map((message) => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
+          )}
+
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              disabled={busy}
+              className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-white disabled:opacity-60"
+            >
+              {busy ? busyLabel(busyPhase) : editing ? "Recreate runner" : "Create runner"}
+            </button>
             <button
               type="button"
-              onClick={onCancelEdit}
+              onClick={handleClose}
               disabled={busy}
               className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium transition hover:bg-slate-800 disabled:opacity-60"
             >
               Cancel
             </button>
-          )}
-        </div>
-      </form>
+          </div>
+        </form>
+      )}
     </section>
   );
 }
