@@ -9,7 +9,7 @@ Sem autenticação e sem banco de dados: o estado dos runners é lido direto da 
 Docker, e cada runner sobe como um container filho `runnerbox-worker-*` identificado
 pela label `ci.runnerbox.managed=true`.
 
-![Painel do RunnerBox CI](docs/images/dashboard.png)
+![Aba Runners do RunnerBox CI](docs/images/runners.png)
 
 Especificação completa em [`docs/spec-mvp.md`](docs/spec-mvp.md).
 
@@ -173,7 +173,11 @@ eles seguem na rede própria por job, que é onde os `services:` são resolvidos
 ## Consumo de recursos
 
 A aba **Resource usage** (`/usage`) mostra CPU, memória e disco de tudo que roda no
-daemon; a aba **Runners** (`/`) traz só CPU e memória de cada runner, numa coluna da tabela:
+daemon; a aba **Runners** (`/`) traz só CPU e memória de cada runner, numa coluna da tabela.
+
+![Aba Resource usage do RunnerBox CI](docs/images/resource-usage.png)
+
+Cada container aparece com um tipo:
 
 - **Panel**: o próprio `runnerbox-ci`, reconhecido pela label `ci.runnerbox.role=panel`
   da imagem. Fora de container (`npm run dev`), mede o processo do Node.
