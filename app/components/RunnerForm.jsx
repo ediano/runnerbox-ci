@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import PlatformCards from "./PlatformCards";
 import { busyLabel } from "@/lib/creation-progress";
+import { parseRegisterCommand } from "@/lib/register-command";
 
 const FIELD_COPY = {
   github: {
     urlLabel: "Repository or organization URL",
     urlPlaceholder: "https://github.com/my-org/my-repo",
-    urlHint: "An owner/repo URL registers at the repository; owner only registers at the organization.",
+    urlHint:
+      "An owner/repo URL registers at the repository; owner only registers at the organization. Pasting the whole ./config.sh command fills URL and token.",
     tokenLabel: "GitHub registration token",
     tokenHint: "Settings → Actions → Runners → New self-hosted runner.",
     resourcesHint:
@@ -17,7 +19,8 @@ const FIELD_COPY = {
   gitlab: {
     urlLabel: "GitLab URL",
     urlPlaceholder: "https://gitlab.com",
-    urlHint: "Use the instance URL; the scope (group or project) comes from the token itself.",
+    urlHint:
+      "Use the instance URL; the scope (group or project) comes from the token itself. Pasting the whole gitlab-runner register command fills URL and token.",
     tokenLabel: "GitLab registration token",
     tokenHint: "Accepts a registration token or an authentication token (glrt-…).",
     resourcesHint: "Jobs run in their own containers; each job container gets the same CPU and memory limits.",
@@ -151,6 +154,14 @@ export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy, busy
     }
   }
 
+  // Colar o comando de registro inteiro em URL ou token preenche os dois campos.
+  function handlePaste(event) {
+    const parsed = parseRegisterCommand(event.clipboardData.getData("text"));
+    if (!parsed) return;
+    event.preventDefault();
+    setForm((prev) => ({ ...prev, url: parsed.url, token: parsed.token, name: prev.name || parsed.name || "" }));
+  }
+
   function handleClose() {
     if (dirty && !window.confirm("Discard what you have entered?")) return;
     setForm(EMPTY);
@@ -195,6 +206,7 @@ export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy, busy
               required
               value={form.url}
               onChange={set("url")}
+              onPaste={handlePaste}
               placeholder={copy.urlPlaceholder}
               className={INPUT_CLASS}
             />
@@ -209,6 +221,7 @@ export default function RunnerForm({ editing, onSubmit, onCancelEdit, busy, busy
               required={!tokenOptional}
               value={form.token}
               onChange={set("token")}
+              onPaste={handlePaste}
               autoComplete="off"
               placeholder={tokenOptional ? "Keeps the current token" : "••••••••••••"}
               className={INPUT_CLASS}
