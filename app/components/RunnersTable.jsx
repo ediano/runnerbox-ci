@@ -1,6 +1,7 @@
 "use client";
 
 import { availableActions } from "@/lib/runner-spec";
+import { formatBytes, formatCpu, formatResources } from "@/lib/format";
 
 const PLATFORM_LABELS = { github: "GitHub Actions", gitlab: "GitLab CI" };
 
@@ -23,6 +24,7 @@ const LIFECYCLE_BUTTONS = {
 
 export default function RunnersTable({
   runners,
+  usage,
   onLifecycle,
   onEdit,
   onUpdate,
@@ -38,6 +40,8 @@ export default function RunnersTable({
     );
   }
 
+  const usageById = new Map((usage?.containers || []).map((entry) => [entry.id, entry]));
+
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
       <table className="w-full text-left text-sm">
@@ -46,6 +50,7 @@ export default function RunnersTable({
             <th className="px-4 py-3 font-medium">Runner</th>
             <th className="px-4 py-3 font-medium">Platform</th>
             <th className="px-4 py-3 font-medium">Status</th>
+            <th className="px-4 py-3 font-medium">Usage</th>
             <th className="px-4 py-3 font-medium text-right">Actions</th>
           </tr>
         </thead>
@@ -67,6 +72,9 @@ export default function RunnersTable({
                     )}
                   </span>
                   <span className="block text-xs text-slate-400">{runner.url}</span>
+                  {runner.resources && (
+                    <span className="block text-xs text-slate-500">{formatResources(runner.resources)}</span>
+                  )}
                 </td>
                 <td className="px-4 py-3">{PLATFORM_LABELS[runner.platform] || runner.platform}</td>
                 <td className="px-4 py-3">
@@ -76,6 +84,9 @@ export default function RunnersTable({
                   >
                     {stateLabel(runner.state)}
                   </span>
+                </td>
+                <td className="px-4 py-3 text-xs text-slate-300">
+                  <RunnerUsage entry={usageById.get(runner.id)} jobs={usage?.summary?.byRunner?.[runner.name]} />
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">
@@ -124,5 +135,23 @@ export default function RunnersTable({
         </tbody>
       </table>
     </div>
+  );
+}
+
+// O consumo do container do runner e, quando houver, quantos jobs dele estão rodando.
+function RunnerUsage({ entry, jobs }) {
+  if (!entry) return <span className="text-slate-500">—</span>;
+  const jobCount = (jobs?.count || 1) - 1;
+  return (
+    <>
+      <span className="block whitespace-nowrap">
+        {formatCpu(entry.cpuPercent)} · {formatBytes(entry.memoryBytes)}
+      </span>
+      {jobCount > 0 && (
+        <span className="block whitespace-nowrap text-slate-500">
+          +{jobCount} job container{jobCount > 1 ? "s" : ""}
+        </span>
+      )}
+    </>
   );
 }

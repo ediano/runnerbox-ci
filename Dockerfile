@@ -34,5 +34,9 @@ ENV RUNNERBOX_DATA_DIR=/var/lib/runnerbox
 RUN mkdir -p /var/lib/runnerbox && chmod 700 /var/lib/runnerbox
 VOLUME ["/var/lib/runnerbox"]
 
+# Containers herdam as labels da imagem: é assim que o painel de consumo reconhece o
+# próprio container entre os demais do daemon, qualquer que seja o nome dado a ele.
+LABEL ci.runnerbox.role="panel"
+
 EXPOSE 2141
 CMD ["node", "server.js"]

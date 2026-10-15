@@ -141,6 +141,61 @@ container com `SIGKILL` e, no Restart, o inicia de novo em seguida.
 - No GitHub, após Start ou Restart o runner pode levar alguns instantes para ficar online
   enquanto a sessão anterior expira.
 
+## Recursos e rede de cada runner
+
+Na seção **Resources** do formulário você escolhe, por runner:
+
+- **Memória** (MB ou GB, mínimo 256 MB): vira `--memory` e `--memory-swap` iguais, ou
+  seja, sem swap além do limite. Se o runner passar do limite, o kernel encerra o
+  processo (OOM).
+- **CPU** (núcleos, ex.: `1.5`): vira `--cpus`.
+- **Rede**: `host` (padrão, o comportamento anterior) compartilha a rede da máquina;
+  `bridge` isola o runner na rede padrão do Docker, com saída para a internet por NAT.
+  Use `bridge` quando não quiser que jobs enxerguem as portas locais da máquina.
+
+Campos vazios significam **sem limite**. O painel recusa valores acima do que o host tem
+(lidos do `docker info`). Os valores ficam em labels do container, então o **Update**
+os preserva; para mudá-los, use **Editar**.
+
+O que o limite cobre depende da plataforma, porque os jobs usam o daemon do host pelo
+socket e os containers que eles criam são **irmãos** do runner, não filhos:
+
+| Plataforma | Onde o job roda | O que o limite cobre |
+| --- | --- | --- |
+| GitHub | Os steps rodam dentro do container do runner | Os steps. `services:` e `docker build` criam containers fora do limite |
+| GitLab | Cada job roda em containers próprios (executor docker) | O runner **e** cada container de job: os mesmos valores vão para `[runners.docker]` (`memory`, `memory_swap`, `cpus`) no `config.toml` |
+
+No GitLab os limites dos jobs são gravados no registro. Por isso mudar os limites exige
+**Editar** (que registra de novo), e runners criados antes desta versão continuam com os
+jobs sem limite até serem editados. A rede escolhida não é repassada aos jobs do GitLab:
+eles seguem na rede própria por job, que é onde os `services:` são resolvidos pelo alias.
+
+## Consumo de recursos
+
+A seção **Resource usage** mostra CPU, memória e disco de tudo que roda no daemon:
+
+- **Panel**: o próprio `runnerbox-ci`, reconhecido pela label `ci.runnerbox.role=panel`
+  da imagem. Fora de container (`npm run dev`), mede o processo do Node.
+- **Runner**: os containers criados pelo painel.
+- **Job**: containers de job do GitLab, atribuídos ao runner pela label
+  `ci.runnerbox.runner` que o registro passa a aplicar neles.
+- **Other**: o resto, inclusive `services:` de jobs do GitHub, que o runner do GitHub
+  cria sem nenhuma marca que permita atribuí-los.
+
+Os números seguem o `docker stats`: 100% de CPU é um núcleo inteiro, e a memória
+desconta o page cache que o kernel pode recuperar. CPU e memória são medidos a cada 10 s
+(`GET /api/usage`). O disco é mais caro e é medido a cada minuto ou pelo botão
+**Measure disk now** (`GET /api/usage?disk=1`):
+
+- por container, a camada gravável. No GitHub ela inclui o diretório de trabalho dos
+  jobs (`/tmp/runner/work`), que cresce com os checkouts;
+- no host, o resumo do `docker system df`: imagens, containers, volumes e build cache.
+
+Na prática o painel consome pouco: um processo Node ocioso, na casa de 100–250 MB de
+memória e perto de 0% de CPU. O build das imagens dos runners roda no daemon (BuildKit),
+não no painel. Quem pesa são os jobs, e o disco cresce com o workspace, as imagens e o
+build cache.
+
 ## Publicação no Docker Hub (GitHub Actions)
 
 A imagem é construída pelo workflow [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml),

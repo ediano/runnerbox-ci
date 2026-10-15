@@ -30,6 +30,19 @@ if ! grep -q '\[\[runners\]\]' "${CONFIG_FILE}" 2>/dev/null; then
         TOKEN_FLAG="--registration-token"
     fi
 
+    # Os jobs rodam em containers irmãos, fora do limite do container do runner; por
+    # isso os limites escolhidos no painel também vão para o config.toml. Valem a partir
+    # do registro: mudar os limites pelo painel recria o runner e registra de novo.
+    # A label identifica de qual runner é cada job no painel de consumo.
+    # Formato chave:valor; apesar do que diz o --help, um JSON aqui vira uma chave quebrada.
+    JOB_FLAGS=(--docker-container-labels "ci.runnerbox.runner:${RUNNER_NAME}")
+    if [[ -n "${RUNNER_JOB_MEMORY:-}" ]]; then
+        JOB_FLAGS+=(--docker-memory "${RUNNER_JOB_MEMORY}m" --docker-memory-swap "${RUNNER_JOB_MEMORY}m")
+    fi
+    if [[ -n "${RUNNER_JOB_CPUS:-}" ]]; then
+        JOB_FLAGS+=(--docker-cpus "${RUNNER_JOB_CPUS}")
+    fi
+
     gitlab-runner register --non-interactive \
         --config "${CONFIG_FILE}" \
         --url "${CI_SERVER_URL}" \
@@ -37,7 +50,8 @@ if ! grep -q '\[\[runners\]\]' "${CONFIG_FILE}" 2>/dev/null; then
         --name "${RUNNER_NAME}" \
         --executor "${RUNNER_EXECUTOR}" \
         --docker-image "${DOCKER_IMAGE}" \
-        --docker-volumes /var/run/docker.sock:/var/run/docker.sock
+        --docker-volumes /var/run/docker.sock:/var/run/docker.sock \
+        "${JOB_FLAGS[@]}"
 
     # Só destrói o token depois do registro dar certo.
     shred -u "${TOKEN_FILE}" 2>/dev/null || rm -f "${TOKEN_FILE}"

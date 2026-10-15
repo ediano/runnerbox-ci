@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { formatBytes, pullTotals, stepStatus, stepsFor } from "@/lib/creation-progress";
+import { pullTotals, stepStatus, stepsFor } from "@/lib/creation-progress";
+import { formatBytes } from "@/lib/format";
 
 function Marker({ status, failed }) {
   if (failed) return <span className="text-red-400">✕</span>;

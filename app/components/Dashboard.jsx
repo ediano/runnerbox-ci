@@ -1,13 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import RunnerForm from "./RunnerForm";
 import RunnersTable from "./RunnersTable";
 import CreationProgress from "./CreationProgress";
+import ResourceUsage from "./ResourceUsage";
 import { readNdjsonStream } from "@/lib/ndjson";
 import { applyProgressEvent, emptyProgress } from "@/lib/creation-progress";
+import { mergeUsage } from "@/lib/usage";
 
 const POLL_INTERVAL_MS = 5000;
+// Cada medição de CPU leva ~1 s no daemon; o disco (`size` + `df`) é bem mais caro.
+const USAGE_INTERVAL_MS = 10_000;
+const DISK_INTERVAL_MS = 60_000;
 
 export default function Dashboard() {
   const [runners, setRunners] = useState([]);
@@ -21,6 +26,12 @@ export default function Dashboard() {
   // `editing` é zerado assim que a recriação termina; o painel de progresso precisa
   // lembrar qual fluxo (create, edit ou update) gerou os eventos que está mostrando.
   const [progressMode, setProgressMode] = useState("create");
+  const [usage, setUsage] = useState(null);
+  const [usageError, setUsageError] = useState(null);
+  const [measuringDisk, setMeasuringDisk] = useState(false);
+  // Evita empilhar medições quando o daemon demora mais que o intervalo.
+  const usageInFlight = useRef(false);
+  const lastDiskAt = useRef(0);
 
   const refresh = useCallback(async () => {
     try {
@@ -40,6 +51,32 @@ export default function Dashboard() {
     const timer = setInterval(refresh, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
   }, [refresh]);
+
+  const refreshUsage = useCallback(async (forceDisk = false) => {
+    if (usageInFlight.current) return;
+    usageInFlight.current = true;
+    const disk = forceDisk || Date.now() - lastDiskAt.current >= DISK_INTERVAL_MS;
+    if (disk) setMeasuringDisk(true);
+    try {
+      const response = await fetch(`/api/usage${disk ? "?disk=1" : ""}`, { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to measure resource usage.");
+      if (disk) lastDiskAt.current = Date.now();
+      setUsage((prev) => mergeUsage(prev, data));
+      setUsageError(null);
+    } catch (err) {
+      setUsageError(err.message);
+    } finally {
+      usageInFlight.current = false;
+      if (disk) setMeasuringDisk(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshUsage();
+    const timer = setInterval(refreshUsage, USAGE_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [refreshUsage]);
 
   // Criação, recriação e atualização respondem no mesmo formato NDJSON; este é o
   // único lugar que o lê. Devolve o runner final ou o erro, nunca lança.
@@ -208,6 +245,7 @@ export default function Dashboard() {
 
         <RunnersTable
           runners={runners}
+          usage={usage}
           busyRow={busyRow}
           disabled={busy}
           onLifecycle={handleLifecycle}
@@ -216,6 +254,13 @@ export default function Dashboard() {
           onDelete={handleDelete}
         />
       </section>
+
+      <ResourceUsage
+        usage={usage}
+        error={usageError}
+        measuringDisk={measuringDisk}
+        onMeasureDisk={() => refreshUsage(true)}
+      />
     </div>
   );
 }
